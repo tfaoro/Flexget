@@ -31,24 +31,42 @@ class NotifyJoin(object):
     schema = {
         'type': 'object',
         'properties': {
+            'api_key': {'type': 'string'},
+            'group': {
+                'type': 'string',
+                'enum': ['all', 'android', 'chrome', 'windows10', 'phone', 'tablet', 'pc']
+            },
             'device': one_or_more({'type': 'string'}),
             'title': {'type': 'string', 'default': '{{task}} - Download started'},
             'body': {'type': 'string', 'default': default_body},
             'url': {'type': 'string'},
         },
-        'required': ['device'],
+        'dependencies': {
+            'group': 'api_key'
+        },
+        'oneOf': [
+            {'required': ['device']},
+            {'required': ['group']},
+        ],
+        'error_oneOf': 'Either a `device` to notify, or a `group` of devices must be specified.',
         'additionalProperties': False
     }
 
     # Run last to make sure other outputs are successful before sending notification
     @plugin.priority(0)
     def on_task_output(self, task, config):
-        for entry in task.accepted:
-            data = {}
+        global_data = {}
+        # Figure out which devices to notify
+        if 'group' in config:
+            global_data['apikey'] = config['api_key']
+            global_data['deviceId'] = 'group.' + config['group']
+        else:
             if isinstance(config['device'], list):
-                data['deviceIds'] = ','.join(config['device'])
+                global_data['deviceIds'] = ','.join(config['device'])
             else:
-                data['deviceId'] = config['device']
+                global_data['deviceId'] = config['device']
+        for entry in task.accepted:
+            data = global_data.copy()
 
             # Attempt to render the title field
             try:
@@ -78,7 +96,7 @@ class NotifyJoin(object):
                 log.info('    Body: %s', data['text'])
                 if data.get('url'):
                     log.info('    URL: %s' % data['url'])
-                log.info('    Raw Data: %s' % json.dumps(data))
+                log.debug('    Raw Data: %s' % json.dumps(data))
                 # Test mode.  Skip remainder.
                 continue
 
