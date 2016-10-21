@@ -19,7 +19,9 @@ class NotifyJoin(object):
     Example::
 
       notify_join:
-        device: <DEVICE_ID> (can also be a list of device ids)
+        [api_key: <API_KEY> (your join api key. Only required for 'group' notifications)]
+        [group: <GROUP_NAME> (name of group of join devices to notify. 'all', 'android', etc.)
+        [device: <DEVICE_ID> (can also be a list of device ids)]
         [title: <NOTIFICATION_TITLE>] (default: "{{task}} - Download started" -- accepts Jinja2)
         [body: <NOTIFICATION_TEXT>] (default: "{{series_name}} {{series_id}}" -- accepts Jinja2)
 
@@ -42,8 +44,9 @@ class NotifyJoin(object):
             'url': {'type': 'string'},
         },
         'dependencies': {
-            'group': 'api_key'
+            'group': ['api_key']
         },
+        'error_dependencies': '`api_key` is required to use Join `group` notifications',
         'oneOf': [
             {'required': ['device']},
             {'required': ['group']},
